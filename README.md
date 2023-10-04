@@ -20,7 +20,7 @@ Type 1: Proving the existence of stable branches of relative equilibria paramate
     Step 3: If you want the computer to take the time needed to complete the proof everywhere, set adaptive to 1.
             Otherwise some step sizes may be too large for some segments of the branch.
     Step 4: Select whether you want to save the produced plot or not.
-    Step 4: Run the file and wait for the plots to appear, you will be updated the the step sizes and value of omega
+    Step 5: Run the file and wait for the plots to appear, you will be updated the the step sizes and value of omega
             along the way.
 
 Type 2: Proving the existence of stable relatively equilbria for large omega for N = 10, 11, 12
