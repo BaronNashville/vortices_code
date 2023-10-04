@@ -1,4 +1,3 @@
-%{
 This code was submitted as a part of the paper titled Determination of stable branches of relative
 equilibria of the N-vortex problem on the sphere.
 
@@ -31,4 +30,3 @@ Type 2: Proving the existence of stable relatively equilbria for large omega for
     Step 2: Select what level of proof you want to do, ie either only existence or both existence and stability.
     Step 3: Select whether you want to save the produced plot or not.
     Step 4: Run the file and wait for the plot to appear.
-%}
