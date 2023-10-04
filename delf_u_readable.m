@@ -1,0 +1,208 @@
+function delf_u = delf_u_readable(x, m, poles, u_tilde)
+%Partial derivative of F defined in eq 3.15 with respect to u
+
+%Extracting the data from the input
+n = (length(x)-2)/4;
+u = reshape(x(1:3*n), 3, n);
+lambda = x(3*n + 1: 4*n);
+alpha = x(4*n + 1);
+u_tilde = reshape(u_tilde, 3, n);
+
+
+%Setting the necessary constants
+zeta = 2*pi/m;
+g = [
+    cos(zeta),  -sin(zeta), 0;
+    sin(zeta),  cos(zeta),  0;
+    0,          0,          1
+    ];
+J_3 = [
+    0,  -1, 0;
+    1,  0,  0;
+    0,  0,  0
+    ];
+Id = eye(3);
+
+if isintval(x) == 1
+    delf_u = intval(zeros(4*n + 1, 3*n));   
+else
+    delf_u = zeros(4*n + 1, 3*n);
+end
+
+%Computing D_u G_1, ..., G_n
+for j = 1:n
+    delf_u(3*n + j, 1 + 3*(j-1): 3*j) = u(:, j)';
+end
+
+%Computing D_u sum_{j = 1 to n} {J_3*u_tilde_j dot u_j}
+delf_u(end, :) = reshape((J_3 * u_tilde), 1, 3*n);
+
+%Computing D_u f_1, ..., f_n
+for j = 1:n
+    for y = 1:n
+        %Computing D_u_y f_j
+        
+        %Extracting u_j and u_y
+        u_j = u(:, j);
+        u_y = u(:, y);
+        
+        %ring_j contains the position of all vortices in the jth ring
+        if isintval(x) == 1
+            ring_j = intval(zeros(3,m));
+        else
+            ring_j = zeros(3, m);
+        end
+        
+        for i = 1:m
+            ring_j(:,i) = g^i * u_j;
+        end
+       
+        %Case y = j
+        if y == j
+            %uj_minus_ring contains the difference between  the
+            %generator of the jth ring and the position of all vortices
+            %in the jth ring
+            uj_minus_ring_j = u_j - ring_j;
+
+            %we are only summing over i = 1 to i = m-1 , so we remove the last
+            %entry corresponding i = m
+            uj_minus_ring_j(:,end) = [];
+            
+            %uj_minus_ring_j_T starts as uj_minus_ring_j tranpose
+            uj_minus_ring_j_T = transpose(uj_minus_ring_j);
+            
+            %we then multiply sections of it so that is becomes
+            %[(u_j-g^1 u_j)^T * g^1; ...; (u_j-g^m-1 u_j)^T * g^m-1]
+            for i = 1:m-1
+                uj_minus_ring_j_T(i:end,:) = uj_minus_ring_j_T(i:end,:) * g;
+            end
+            %finally, it becomes
+            %[(u_j-g^1 u_j)^T * (I - g^1); ...; (u_j-g^m-1 u_j)^T * (I - g^m-1)]
+            %as wanted
+            uj_minus_ring_j_T = transpose(uj_minus_ring_j) - uj_minus_ring_j_T;
+            
+            %We first compute the A_1(u) = -sum1 - sum2
+            
+            %sum1 is computed using loops as I found no way to vectorize it
+            sum1 = zeros(3,3);
+            
+            %inverse_norm_square_uj_minus_ring_j contains 1 over the 2 norm
+            %squared of u_j - g^i u_j in its ith coodrinate
+            inverse_norm_square_uj_minus_ring_j = sum(uj_minus_ring_j.^(2), 1).^(-1);
+            for i = 1:m-1
+                sum1 = sum1 + inverse_norm_square_uj_minus_ring_j(i) * (Id - g^i);
+            end         
+            
+            %sum2 is then computed by vectorization
+            sum2 = (inverse_norm_square_uj_minus_ring_j.^(2) .* uj_minus_ring_j)*uj_minus_ring_j_T;
+            
+            %We then compute the A_2(u) = -sum3 - sum4
+            %These are simpler than sum1 and sum2 since there is no I - g^i term
+            sum3 = zeros(3,3);
+            sum4 = zeros(3,3);
+            
+            
+            for j_prime = 1:n
+                %We don't sum over j' = j
+                if j_prime ~=j
+                    u_j_prime = u(:, j_prime);
+                    
+                    %ring_j_prime contains the position of all vortices in the j'th ring
+                    if isintval(x) == 1
+                        ring_j_prime = intval(zeros(3,m));   
+                    else
+                        ring_j_prime = zeros(3,m);
+                    end
+                    
+                    for i = 1:m
+                        ring_j_prime(:,i) = g^i * u_j_prime;
+                    end
+                    
+                    %uj_minus_ring contains the difference between  the
+                    %generator of the jth ring and the position of all vortices
+                    %in the j'th ring
+                    uj_minus_ring_j_prime = u_j - ring_j_prime;
+                    
+                    %inverse_norm_square_uj_minus_ring_j contains 1 over the 2 norm
+                    %squared of u_j - g^i u_j in its ith coodrinate
+                    inverse_norm_square_uj_minus_ring_j_prime = sum(uj_minus_ring_j_prime.^2, 1).^(-1);
+                    
+                    %We then compute sum3 and sum4 by vectorization
+                    sum3 = sum3 + sum(inverse_norm_square_uj_minus_ring_j_prime) * Id;
+                    sum4 = sum4 + inverse_norm_square_uj_minus_ring_j_prime.^(2).*(uj_minus_ring_j_prime)*transpose(uj_minus_ring_j_prime);
+                end
+            end
+            
+            
+            %We finally compute A_3(u) = -sum5 - sum6
+            %These sums are straight forward and are hence computed directly
+            sum5 = 0;
+            sum6 = 0;
+            
+            if poles == 1
+                sum5 = norm(u_j - [0;0;1])^(-2) * Id;
+                sum6 = (u_j - [0;0;1]) * (u_j - [0;0;1])' * norm(u_j - [0;0;1])^(-4);
+            elseif poles == -1
+                sum5 = norm(u_j - [0;0;-1])^(-2) * Id;
+                sum6 = (u_j - [0;0;-1]) * (u_j - [0;0;-1])' * norm(u_j - [0;0;-1])^(-4);
+            elseif poles == 2
+                north5 = norm(u_j - [0;0;1])^(-2) * Id;
+                north6 = (u_j - [0;0;1]) * (u_j - [0;0;1])' * norm(u_j - [0;0;1])^(-4);
+                
+                south5 = norm(u_j - [0;0;-1])^(-2) * Id;
+                south6 = (u_j - [0;0;-1]) * (u_j - [0;0;-1])' * norm(u_j - [0;0;-1])^(-4);
+                
+                sum5 = north5 + south5;
+                sum6 = north6 + south6;
+            end
+            
+            %Combine it all together, multiplying the sums by the correct coefficients and
+            %adding the derivative of the remaining terms of f_j
+            deljy = -m*(sum1 - 2*sum2 + sum3 - 2*sum4 + sum5 -2*sum6) + m*lambda(j)*Id + alpha*J_3;
+        else
+            %ring_y contains the position of all vortices in the y'th ring
+            if isintval(x) == 1
+                ring_y = intval(zeros(3,m));   
+            else
+                ring_y = zeros(3,m);
+            end
+            
+            for i = 1:m
+                ring_y(:,i) = g^i * u_y;
+            end
+            
+            %uj_minus_ring contains the difference between  the
+            %generator of the jth ring and the position of all vortices
+            %in the yth ring
+            uj_minus_ring_y = u_j - ring_y;
+            
+            %uj_minus_ring_y_T starts as uj_minus_ring_y tranpose     
+            uj_minus_ring_y_T = transpose(uj_minus_ring_y);
+            
+            %we then multiply sections of it so that is becomes
+            %[(u_j-g^1 u_j)^T * g^1; ...; (u_j-g^m-1 u_j)^T * g^m-1]
+            for i = 1:m
+                uj_minus_ring_y_T(i:end,:) = uj_minus_ring_y_T(i:end,:) * g;
+            end
+
+            %sum1 is computed using loops as I found no way to vectorize it
+            sum1 = zeros(3,3);
+            
+            %inverse_norm_square_uj_minus_ring_y contains 1 over the 2 norm
+            %squared of u_j - g^i u_y in its ith coodrinate
+            inverse_norm_square_uj_minus_ring_y = sum(uj_minus_ring_y.^2, 1).^(-1);
+            for i = 1:m
+                sum1 = sum1 + inverse_norm_square_uj_minus_ring_y(i) * g^i;
+            end
+            
+            %sum2 is then computed by vectorization
+            sum2 = (inverse_norm_square_uj_minus_ring_y.^(2).*uj_minus_ring_y)*(uj_minus_ring_y_T);
+            
+            deljy = m*(sum1 - 2*sum2);
+        end
+        
+        %Putting our computed partial derivative in the correct spot in the Jacobian
+        delf_u(1 + 3*(j-1):3*j, 1 + 3*(y-1):3*y) = deljy;
+    end    
+end
+    
