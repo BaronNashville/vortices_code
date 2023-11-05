@@ -1,4 +1,4 @@
-%Given the correct initial data given from the main script, this will compute the branches anbd plot the results
+%Given the correct initial data given from the main script, this will compute the branches and plot the results
 
 %Initialization
 

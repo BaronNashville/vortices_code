@@ -1,6 +1,7 @@
 %Master script that will run proofs for stable branches
 clear, clc
 
+%The number vortices, including poles, that are in the proof we are reproducing
 N = 4;
 
 existence_proof = 1;             %Set to 1 if you want to prove the existence of the equilibria

@@ -8,6 +8,5 @@ counter = 0;
 while norm(f(x, m, poles, u_tilde)) > tol && counter < max_steps
     x(1:4*n + 1) = x(1:4*n + 1) -(Df_U(x, m, poles, u_tilde)^-1)*f(x, m, poles, u_tilde);
     counter = counter + 1;
-    %disp(['||f|| = ', num2str(norm(f(x, m, poles, u_tilde)))])
 end
 end

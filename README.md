@@ -5,12 +5,14 @@ This READ_ME describes how to reproduce the proofs presented in the paper above.
 
 There are 2 types of numerical proofs this code can produce.
 
-Recall the following colour coding when looking at the ouput graphs.
+Recall the following colour coding when looking at the plots.
 
 Green      - Lyapunov stable
 Red        - Unstable
 Magenta    - Inconclusive test
 Yellow     - Numercial uncertainty
+
+If the existence of the solution could not be proven, we color the point black.
 
 Type 1: Proving the existence of stable branches of relative equilibria paramaterized by omega for N = 4, 5, ..., 12
     To produce these proofs, we will be using the "main_continuation.m" file.

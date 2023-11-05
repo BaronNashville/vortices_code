@@ -9,12 +9,16 @@ alpha = x(4*n + 1);
 omega = x(4*n + 2);
 
 if isintval(x) == 1
-    lambda_no_sym = intval(zeros(n*m + abs(poles),1));
- 
+    lambda_no_sym = intval(zeros(n*m + abs(poles),1)); 
 else
     lambda_no_sym = zeros(n*m + abs(poles),1);
 end
+
+%All vortices on a ring share the same value of lambda
 lambda_no_sym(1:n*m) = reshape(repmat(lambda', m, 1),1,n*m);
+
+%Adding the lambda value of the poles using the lambda_gen_point function
+%generating the rings from the generators
 if poles == 0
     N = n*m;
     u_no_sym = vectorize(x,m);

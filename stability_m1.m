@@ -14,11 +14,12 @@ J_3 = [
     0   0  0
     ];
 
+%Removing all symmetry from the input
 new_input = input_no_sym(x, m, poles);
 
 crossed = 0;
 
-%Formatting the data
+%Formatting the data so that the proof works
 counter = 3;
 while new_input(1)*new_input(5) - new_input(4)*new_input(2)< 1e-2 && counter <= N
     

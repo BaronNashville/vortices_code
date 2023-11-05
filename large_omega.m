@@ -1,16 +1,20 @@
+%If given the correct parameters will prove the existence of a solution for large omega
 
+%If asked to prove existence, will verify it
 if existence_proof
     sol_bound = interval_f_U(initial_solution, m, poles, u_tilde, 1e-10);
 else
     sol_bound = 0;
 end
 
+%If asked to verify stability, will verify it
 if stability_proof
     [values, err] = stability_verif(initial_solution, initial_solution, m, poles, sol_bound, 'point');
 else
     [values, err] = stability(initial_solution, initial_solution, m, poles);    
 end
 
+%Seeing which vortices are at distinct heights by first looking at which might be at the same height
 same_height = 0;
 
 coords = reshape(initial_solution(1:3*n), 3, n);
@@ -29,10 +33,12 @@ for i = 1:size(coords,2)
     end
 end
 
+%Plotting parameters
 vect = vectorize(initial_solution, m);
 
 stability_colour = error_code_to_colour(err);
 
+%Plotting the result
 
 [X, Y, Z] = sphere;
 surf(X,Y,Z,'FaceColor', [0 0 0], 'EdgeColor', 0.8*[1,1,1], 'FaceAlpha', 0.2);
