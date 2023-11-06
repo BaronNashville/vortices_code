@@ -2,9 +2,6 @@ function [values, err] = stability_m2(x, m, poles)
 %Extracting the data from the input
 n = (length(x)-2)/4;
 u = reshape(x(1:3*n), 3, n);
-lambda = x(3*n + 1: 4*n);
-alpha = x(4*n + 1);
-omega = x(4*n + 2);
 N = n*m + abs(poles);
 
 %Setting the necessary constants
@@ -16,20 +13,20 @@ J_3 = [
 
 zeta = 2*pi/m;
 
-g = [
-    cos(zeta),  sin(zeta), 0;
-    -sin(zeta),  cos(zeta),  0;
-    0,          0,          1
-    ];
-
 a = zeros(3*m, n);
 b = zeros(3*m, n);
 c = zeros(3*m, n);
 
+B = zeros(3*N*m, n);
+C = zeros(3*N*m, n);
+
+B_hat = zeros(3*N*(floor(m/2)+1),n);
+C_hat = zeros(3*N*(floor(m/2)+1),n);
+
+%Removing all symmetry from the input
 new_input = input_no_sym(x, m, poles);
 
-crossed = 0;
-
+%Defining a, b, c, as in equations 4.2 and 4.7
 for k = 1:m
     a(1+3*(k-1):3*k,:) = expm((k)*J_3*zeta)*u;
     
@@ -40,9 +37,7 @@ for k = 1:m
     end
 end
 
-B = zeros(3*N*m, n);
-C = zeros(3*N*m, n);
-
+%Defining B,C as in equation 4.8
 for k = 1:m
    for j = 1:n
        B(1+3*N*(k-1)+3*m*(j-1) + 3*(k-1):1+3*N*(k-1)+3*m*(j-1) + 3*(k-1) + 2,j) = b(1+3*(k-1):3*k,j);
@@ -50,9 +45,7 @@ for k = 1:m
    end
 end
 
-B_hat = zeros(3*N*(floor(m/2)+1),n);
-C_hat = zeros(3*N*(floor(m/2)+1),n);
-
+%Defining B_hat, C_hat as in equation 4.9
 for L = 0:floor(m/2)
    for j = 1:n
        B_tmp = reshape(B(:,j), 3*N, m);
@@ -67,6 +60,7 @@ end
 B_hat_fun = @(j,L) B_hat(1+3*N*L:3*N*(L+1), j);
 C_hat_fun = @(j,L) C_hat(1+3*N*L:3*N*(L+1), j);
 
+%Defining delta_x_1, delta_x_2, delta_y_1, delta_y_2, as in equation 4.8
 delta_x = zeros(3*N, 2);
 delta_x(end-5:end-3,1) = [1;0;0];
 delta_x(end-2:end,2) = [1;0;0];
@@ -76,8 +70,6 @@ delta_y(end-5:end-3,1) = [0;1;0];
 delta_y(end-2:end,2) = [0;1;0];
 
 w = @(j) u(1,j) -1i*u(2,j);
-x_coord = @(j) u(1,j);
-y_coord = @(j) u(2,j);
 z_coord = @(j) u(3,j);
 
 if (isintval(x) == 1)
@@ -86,6 +78,7 @@ else
     M = zeros(3*N,4*(n-1) + 2*abs(poles) + 2*(floor(m/2)-1) * n);
 end
 
+%Defining M, the matrix which is defined right under equation 4.36
 for L = 0:floor(m/2)
     if L == 0
         for j = 2:n
@@ -115,7 +108,8 @@ for L = 0:floor(m/2)
         end
     end  
 end
-    
+
+%Defining M_cal, the matrix who hos black matrices M_cal_l as defined in equation 4.36
 M_cal = M' * Df_no_sym(new_input) * M;
 
 values = zeros(4*(n-1) + 2*abs(poles) + 2*(floor(m/2)-1) * n, 1);
@@ -124,6 +118,8 @@ weight = zeros(4*(n-1) + 2*abs(poles) + 2*(floor(m/2)-1) * n, 1);
 neg = 0;
 zero = 0;
 pos = 0;
+
+%Then for each block of M_cal_l we compute its eigenvalues
 for L = 0:floor(m/2)
     if L == 0
         M_cal_L = M_cal(1:2*n-2,1:2*n-2);
@@ -131,38 +127,15 @@ for L = 0:floor(m/2)
         values(1:2*n-2) = real(current_values);
         weight(1:2*n-2) = ones(2*n-2, 1);
         
-        for i = 1:length(current_values)
-            for j = 1:length(current_values)
-                vi = current_values(i);
-                vj = current_values(j);
-
-                if (i ~= j && abs(vi-vj) < 1e-2)
-                   crossed = 1; 
-                end
-
-            end
-        end
-        
     elseif L == 1
         M_cal_L = M_cal(2*n-1:end,2*n-1:end);
         current_values = eig(mid(M_cal_L));
         values(2*n-1:end) = real(current_values);
         weight(2*n-1:end) = ones(2*n + 2*abs(poles) - 2, 1);
-        
-        for i = 1:length(current_values)
-            for j = 1:length(current_values)
-                vi = current_values(i);
-                vj = current_values(j);
-
-                if (i ~= j && abs(vi-vj) < 1e-2)
-                   crossed = 1;
-                end
-
-            end
-        end
     end
 end
 
+%We then see which are zero, positive or negative
 for k = 1:length(values)
     value = values(k);
     if norm(value) < 1e-15
@@ -174,6 +147,7 @@ for k = 1:length(values)
     end
 end
 
+%Return the appropriate error code
 if zero ~= 0
     err = 2;    %inconclusive test - magenta
 elseif neg == 0
@@ -182,10 +156,6 @@ elseif mod(neg,2) == 1
     err = 1;    %Unstable solution - red
 elseif mod(neg,2) == 0 || mod(pos, 2) == 0
     err = 2;    %inconclusive test - magenta
-end
-
-if crossed
-    %err = 4;    %2 eigenvalues have crossed
 end
 
 end

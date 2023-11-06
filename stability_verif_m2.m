@@ -12,9 +12,6 @@ end
 
 n = (length(X)-2)/4;
 u = reshape(X(1:3*n), 3, n);
-lambda = X(3*n + 1: 4*n);
-alpha = X(4*n + 1);
-omega = X(4*n + 2);
 N = n*m + abs(poles);
 
 %Setting the necessary constants
@@ -25,12 +22,6 @@ J_3 = [
     ];
 
 zeta = 2*pi/m;
-
-g = [
-    cos(zeta),  sin(zeta), 0;
-    -sin(zeta),  cos(zeta),  0;
-    0,          0,          1
-    ];
 
 if (isintval(X) == 1)
     a = intval(zeros(3*m, n));
@@ -54,9 +45,13 @@ else
     C_hat = zeros(3*N*(floor(m/2)+1),n);
 end
 
+%Removing all symmetry from the input
+%Range contains values along the line segment X_0 to X_1
+%Point contains value at the point X_0
 new_input_point = input_no_sym(midrad(X_0, bound), m, poles);
 new_input_range = input_no_sym(X, m, poles);
 
+%Defining a, b, c, as in equations 4.2 and 4.7
 for k = 1:m
     a(1+3*(k-1):3*k,:) = expm((k)*J_3*zeta)*u;
     
@@ -67,6 +62,7 @@ for k = 1:m
     end
 end
 
+%Defining B,C as in equation 4.8
 for k = 1:m
    for j = 1:n
        B(1+3*N*(k-1)+3*m*(j-1) + 3*(k-1):1+3*N*(k-1)+3*m*(j-1) + 3*(k-1) + 2,j) = b(1+3*(k-1):3*k,j);
@@ -74,6 +70,7 @@ for k = 1:m
    end
 end
 
+%Defining B_hat, C_hat as in equation 4.9
 for L = 0:floor(m/2)
    for j = 1:n
        B_tmp = reshape(B(:,j), 3*N, m);
@@ -88,6 +85,7 @@ end
 B_hat_fun = @(j,L) B_hat(1+3*N*L:3*N*(L+1), j);
 C_hat_fun = @(j,L) C_hat(1+3*N*L:3*N*(L+1), j);
 
+%Defining delta_x_1, delta_x_2, delta_y_1, delta_y_2, as in equation 4.8
 delta_x = zeros(3*N, 2);
 delta_x(end-5:end-3,1) = [1;0;0];
 delta_x(end-2:end,2) = [1;0;0];
@@ -97,8 +95,6 @@ delta_y(end-5:end-3,1) = [0;1;0];
 delta_y(end-2:end,2) = [0;1;0];
 
 w = @(j) u(1,j) -1i*u(2,j);
-x_coord = @(j) u(1,j);
-y_coord = @(j) u(2,j);
 z_coord = @(j) u(3,j);
 
 if (isintval(X) == 1)
@@ -107,11 +103,11 @@ else
     M = zeros(3*N,4*(n-1) + 2*abs(poles) + 2*(floor(m/2)-1) * n);
 end
 
+%Defining M, the matrix which is defined right under equation 4.36
 for L = 0:floor(m/2)
     if L == 0
         for j = 2:n
             M(:,1+2*(j-2)) = B_hat_fun(j,0);
-            %P(:,2+2*(j-2)) = norm(b(1+3*(m-1):3*m,1))^2 *C_hat_fun(j,0) - norm(b(1+3*(m-1):3*m,j))^2*C_hat_fun(1,0)
             M(:,2+2*(j-2)) = norm(w(1))^2 *C_hat_fun(j,0) - norm(w(j))^2*C_hat_fun(1,0);
         end
     elseif L == 1
@@ -138,6 +134,8 @@ for L = 0:floor(m/2)
 
 end
 
+%Defining M_cal, the matrix who hos black matrices M_cal_l as defined in equation 4.36
+%Same thing for range vs point as above
 M_cal_point = M' * Df_no_sym(new_input_point) * M;
 M_cal_range = M' * Df_no_sym(new_input_range) * M;
 
@@ -147,6 +145,9 @@ bounds = zeros(2, length(values));
 M_cal_Ls = cell(1,1+floor(m/2));
 
 prop = 1;
+
+%Then for each block of M_cal_l we compute its eigenvalues and verify them
+%Rigorously, either at the point, or along the segment.
 if strcmp(verif_type, 'point') || strcmp(verif_type, 'segment')
     neg = 0;
     ambiguous = 0;
@@ -238,6 +239,7 @@ if strcmp(verif_type, 'point') || strcmp(verif_type, 'segment')
         err = 2;    %inconclusive test - magenta
     end
     
+%If stability is being propogated, we simply make sure each block of M_cal_l is invertible
 elseif strcmp(verif_type, 'prop')
     for L = 0:floor(m/2)
         if L == 0
@@ -274,22 +276,3 @@ elseif strcmp(verif_type, 'prop')
     end
 end
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

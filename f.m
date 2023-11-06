@@ -126,7 +126,7 @@ for j = 1:n
         end
     end
     
-    %The third sum is then straight forwar to compute, so we do so directly
+    %The third sum is then straight forward to compute, so we do so directly
     sum3 = zeros(3,1);
     
     if poles == 1

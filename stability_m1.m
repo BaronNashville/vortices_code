@@ -1,10 +1,6 @@
 function [values, err] = stability_m1(x, m, poles)
 %Extracting the data from the input
 n = (length(x)-2)/4;
-u = reshape(x(1:3*n), 3, n);
-lambda = x(3*n + 1: 4*n);
-alpha = x(4*n + 1);
-omega = x(4*n + 2);
 N = n*m + abs(poles);
 
 %Setting the necessary constants
@@ -17,9 +13,7 @@ J_3 = [
 %Removing all symmetry from the input
 new_input = input_no_sym(x, m, poles);
 
-crossed = 0;
-
-%Formatting the data so that the proof works
+%Formatting the data so that a1 and a2 do not have equal nor opposite latitudes and are not poles
 counter = 3;
 while new_input(1)*new_input(5) - new_input(4)*new_input(2)< 1e-2 && counter <= N
     
@@ -34,6 +28,7 @@ while new_input(1)*new_input(5) - new_input(4)*new_input(2)< 1e-2 && counter <= 
     counter = counter + 1;
 end
 
+%Defining a, b, c, as in appendix C
 a = reshape(new_input(1:3*N), 3, N);
 
 if isintval(x) == 1
@@ -62,6 +57,7 @@ else
     M = zeros(3*N, 2*N-4);
 end
 
+%Defining the matrix M with columns given by u and v from C.1
 for j = 1:N-2
     %u
     if j == 1
@@ -74,13 +70,18 @@ for j = 1:N-2
     M(1:6,N-2+j) = [cross(a(:,1),cross(b(:,2),c(:,j+2)));-dot(a(:,1),c(:,j+2))*b(:,2)];
     M(3*(j+2)-2:3*(j+2),N-2+j) = dot(a(:,1),b(:,2))*c(:,j+2);
 end
+
+%Constructing M_cal to compute the non zero eigenvalues or Df_no_sym
 M_cal = M' * Df_no_sym(new_input) * M;
+
+%Computing its eigenvalues
 values = real(eig(mid(M_cal)));
 
 neg = 0;
 zero = 0;
 pos = 0;
 
+%We then see which are zero, positive or negative
 for i = 1:length(values)
     value = values(i);
     if norm(value) < 1e-15
@@ -92,30 +93,15 @@ for i = 1:length(values)
     end
 end
 
-for i = 1:length(values)
-    for j = 1:length(values)
-        vi = values(i);
-        vj = values(j);
-
-        if (i ~= j && abs(vi-vj) < 1e-2)
-           crossed = 1;
-        end
-
-    end
-end
-
+%Return the appropriate error code
 if zero ~= 0
-    err = 2;    %inconclusive test - black
+    err = 2;    %inconclusive test - magenta
 elseif neg == 0
     err = 0;    %Lyapunov stable - green
 elseif mod(neg,2) == 1
     err = 1;    %Unstable solution - red
 elseif mod(neg,2) == 0 || mod(pos, 2) == 0
-    err = 2;    %inconclusive test - black
-end
-
-if crossed
-    %err = 4;    %2 eigenvalues have crossed
+    err = 2;    %inconclusive test - magenta
 end
 
 end

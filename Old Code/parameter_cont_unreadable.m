@@ -1,43 +1,31 @@
 %Given the correct initial data given from the main script, this will compute the branches and plot the results
 
 %Initialization
-if existence_proof == 1
-    proof_data_uniform = zeros(1,steps);
-    proof_data_point = zeros(1,steps+1);
-end
-solutions = zeros(4*n + 2, steps + 1);
-tangents = zeros(4*n + 2, steps + 1);
-vectorized_solutions = zeros(3, n*m*(steps+1));
-
-momentum = zeros(1, steps+1);
-energy = zeros(1, steps+1);
-
-if m == 1
-    values = zeros(2*N - 4, steps+1);
-elseif m == 2
-    values = zeros(2*(floor(m/2)+1)*(n-1)+2*abs(poles), steps+1);
-    
-elseif m >=3
-    values = zeros(1 + 4*(n-1) + abs(poles) + 2*(floor(m/2)-1) * n, steps+1);
-end
-
-r_stars = zeros(1,steps);
-normAs = zeros(1, steps);
 
 starting_step_size = 1e-3;
 step_size = starting_step_size;
 max_step_size = 1e-3;
 r_star = 1e-5;
 
-%Solving for initial solution and proving existence
+detect_bifurcation = 1;
+max_bifurcation_jumps = 0;
+
+if existence_proof == 1
+    proof_data_uniform = zeros(1,steps);
+    proof_data_point = zeros(1,steps+1);
+end
+
 fixed_initial_solution = newton_f(initial_solution, m, poles, u_tilde);
 if existence_proof
     proof_data_point(1) = interval_f_U(fixed_initial_solution, m, poles, u_tilde, 1e-10);
 end
 
+
+solutions = zeros(4*n + 2, steps + 1);
 solutions(:,1) = fixed_initial_solution;
 
-%Finding the starting tangent direction
+tangents = zeros(4*n + 2, steps + 1);
+
 if norm(load_tangent) < 1e-2
     nullspace = null(Df(fixed_initial_solution, m, poles, u_tilde));
     tangents(:,1) = nullspace(:,1);
@@ -48,8 +36,13 @@ else
     tangents(:,1) = load_tangent;
 end
 
+
+
+vectorized_solutions = zeros(3, n*m*(steps+1));
 vectorized_solutions(:, 1:n*m) = vectorize(fixed_initial_solution, m);
 
+momentum = zeros(1, steps+1);
+energy = zeros(1, steps+1);
 [momentum(1), energy(1)] = plot_values(solutions(:,1), m, poles);
 
 if poles == 0
@@ -60,13 +53,21 @@ else
     N = n*m+2;
 end
 
-%Proving stability of initial solution
+if m == 1
+    values = zeros(2*N - 4, steps+1);
+elseif m == 2
+    values = zeros(2*(floor(m/2)+1)*(n-1)+2*abs(poles), steps+1);
+    
+elseif m >=3
+    values = zeros(1 + 4*(n-1) + abs(poles) + 2*(floor(m/2)-1) * n, steps+1);
+end
+
 if stability_proof
     if (0 <= proof_data_point(1) && proof_data_point(1) <= r_star)
         [values(:,1), err] = stability_verif(solutions(:,1), solutions(:,1), m, poles, proof_data_point(1), 'point');
     else
         values(:,1) = stability(solutions(:,1), m, poles);
-        err = 4;
+        err = 3; %numerical uncertainty
     end
 else
     [values(:,1), err] = stability(solutions(:,1), m, poles);
@@ -86,13 +87,19 @@ elseif segment == 5
     segment_color = [0.4940 0.1840 0.5560];
 end
 
-%Coloring
+
 color_delta = 1/(steps);
-continuation_color = [repmat(segment_color, n*m, 1);zeros(n*m*steps,3)];    %Coloring continuation plot
-stability_color = [k;zeros(steps,3)];                                       %Coloring stability plot
+continuation_color = [[repmat(segment_color, n*m, 1)];zeros(n*m*steps,3)]; %Coloring continuation plot
+existence_color = zeros(steps+1,3);                                 %Coloring existence plot
+stability_color = [k;zeros(steps,3)];                               %Coloring stability plot
+r_stars = zeros(1,steps);
+
+current_bifurcation_jumps = 0;
+bifurcation_detected = 0;
+
+normAs = zeros(1, steps);
 
 disp(['Start',', norm of inverse = ' , num2str(norm((DF_arc(solutions(:,1), m, poles,u_tilde, tangents(:,1)))^-1,inf)), ', omega = ', num2str(solutions(end,1)), ', mu = ', num2str(momentum(1))])
-
 %Continuation
 i = 1;
 end_segment = 0;
@@ -101,17 +108,30 @@ while i <= steps
     %Stepping
     r_stars(i) = r_star;
     
-    %Predictor-Corrector method
     approx_solution = solutions(:,i) + step_size * tangents(:,i);    
     [fixed_solution, iter, normAs(i)] = newton_F_arc(approx_solution, m, poles, u_tilde, approx_solution, tangents(:,i));
+    
+    %Detecting bifurcations
+    if current_bifurcation_jumps < max_bifurcation_jumps && detect_bifurcation == 1 && normAs(i) > 10^5 && i*step_size > 4
+        [u,s,v] = svd(Df(fixed_solution, m, poles, u_tilde));
+        bifurcation_detected = 1;
+        current_bifurcation_jumps = current_bifurcation_jumps +1;
+    end
     
     vectorized_solutions(:,1 + i*n*m: (i+1)*n*m) = vectorize(fixed_solution, m);
     
     solutions(:,i+1) = fixed_solution;
-    
-    %Computing the next tangent direction
     nullspace = null(Df(fixed_solution, m, poles, u_tilde));
-    tangents(:,i+1) = nullspace(:,1);    
+    
+    max_dot = 0;
+    max_j = 1;
+    for j = 1:size(nullspace,2)
+        if norm(dot(nullspace(:,j), tangents(:,i))) > max_dot
+            max_dot = norm(dot(nullspace(:,j), tangents(:,i)));
+            max_j = j;
+        end
+    end        
+    tangents(:,i+1) = nullspace(:,max_j);    
     
     if dot(tangents(:,i+1), tangents(:,i)) < 0
         tangents(:,i+1) = -tangents(:,i+1);
@@ -124,25 +144,24 @@ while i <= steps
         proof_data_uniform(i) = interval_parameter(solutions(:,i), solutions(:,i+1), m, poles, u_tilde, r_star);
         proof_data_point(i+1) = interval_f_U(solutions(:,i+1), m, poles, u_tilde, 1e-10);
         
-        if 0 < proof_data_uniform(i) && proof_data_uniform(i) <= r_star
-            %Existence proof worked
+        
+        if 0 < proof_data_point(i+1) && proof_data_point(i+1) <= 1e-10
+            [val,tmp_err] = stability_verif(solutions(:,i+1), solutions(:,i+1), m, poles, proof_data_point(i+1), 'point');
+        end
+        
+        if proof_data_uniform(i) > 0 && proof_data_uniform(i) <= r_star
             if stability_proof
-                %Want to prove stability
                 if point_verified
-                    %Only need to propogate
                     [values(:,i+1), err] = stability_verif(solutions(:,i), solutions(:,i+1), m, poles, proof_data_uniform(i), 'prop');
                 else
-                    %Attempt to verify segment
                     [values(:,i+1), err] = stability_verif(solutions(:,i), solutions(:,i+1), m, poles, proof_data_uniform(i), 'segment');
                 end
             else
-                %Not proving stability
                 [values(:,i+1), err] = stability(solutions(:,i+1), m, poles);
             end
         else
-            %Existence proof failed
             values(:,i+1) = stability(solutions(:,i+1), m, poles);
-            err = 4;
+            err = 3; %numerical uncertainty
         end
     else
         [values(:,i+1), err] = stability(solutions(:,i+1), m, poles);
@@ -150,36 +169,40 @@ while i <= steps
     
     %Colouring
     k = error_code_to_colour(err);
-    g = k;    
+    
+    if ~existence_proof || (proof_data_uniform(i) > 0 && proof_data_uniform(i) <= r_star)
+        g = k;
+        stability_color(i+1,:) = k;
+    else
+        g = [0 0 0];
+        stability_color(i+1,:) = [0 0 0];
+    end
     h = repmat(g, n*m, 1);
 
-    stability_color(i+1,:) = k;
-    continuation_color(1+n*m*(i):n*m*(i+1),:) = h;    
+    continuation_color(1+n*m*(i):n*m*(i+1),:) = h;
+    existence_color(i+1,:) = g;
+    
     
     %Adaptive
     if adaptive == 1
-        %redo is a variable that is set to 1 if we our current step should be redone at a smaller step size
-        redo = 0;
+        skip = 0;
         
-        %redo step if existence proof failed, else increase r_star
         if existence_proof && range_existence(solutions(end,i))
             if proof_data_uniform(i) <= 0
                 r_star = max(3 * r_star/4, 1e-10);
-                redo = 1;
+                skip = 1;
             elseif proof_data_uniform(i) > r_star
                 r_star = min(1.1 * r_star, 1e-5);
-                redo = 1;
+                skip = 1;
             else
                 r_star = proof_data_uniform(i) + step_size/1000;
             end
         end
 
-        %redo step if we could not verify propogation of stability
-        if stability_proof && range_stability(solutions(end,i)) 
+
+        if stability_proof && range_stability(solutions(end,i))
             if ~range_stability(solutions(end,max(1,i-1))) && ~point_verified
-                %First step in stability range, so we verify the point
                 if ~(0 < proof_data_point(i+1) && proof_data_point(i+1) <= 1e-10)
-                    %Unable to prove existence, we chose point too close to branch switch
                     error("Trying to validate stability too close to branch switch")
                 end
                 
@@ -188,19 +211,16 @@ while i <= steps
                 if tmp_err == 0
                     point_verified = 1;
                 else
-                    %Unable to verify eigenvalues, we chose point too close to branch switch
                     error("Trying to validate stability too close to branch switch")
                 end
             end
             if err == 3
-                redo = 1;
+                skip = 1;
             end
         else
-            %If we step out of our stability range, then reset point_verified variable to 0
             point_verified = 0;
         end
 
-        %If outside range of any proofs, then reset step size to 10^-3 and r_star to 3*10^-6
         if ~range_existence(solutions(end,i)) && ~range_stability(solutions(end,i))
             step_size = starting_step_size;
             if range_stability(solutions(end,max(1,i-1)))
@@ -208,9 +228,7 @@ while i <= steps
             end
         end
 
-        %Redo step with step size 3/4 current step size, else increase by factor of 1.1 up to max step size
-        %Do similarly for r_star
-        if redo
+        if skip
             step_size = 3 * step_size/4;
             continue
         else
@@ -221,14 +239,13 @@ while i <= steps
         end
     end
     
-    %Stop the continuation once we reach an non stable point
+    
     for j = 1:length(values(:,i+1))
        if values(j,i+1) < 0 && abs(values(j,i+1)) > 1e-9
            end_segment = 1;
        end
     end
     
-    %Stop the continuation if omega decreased
     if (solutions(end, i+1) < solutions(end, i))
         end_segment = 1;
     end
@@ -237,7 +254,7 @@ while i <= steps
         break;
     end
     
-    %Display information about the continuation after every step
+    
     disp(['Step # = ', num2str(i),', norm of inverse = ' , num2str(norm((DF_arc(solutions(:,i+1), m, poles,u_tilde, tangents(:,i+1)))^-1,inf)), ', omega = ', num2str(solutions(end,i+1)), ', mu = ', num2str(momentum(i+1))])
     if adaptive == 1
         disp(step_size)
@@ -252,10 +269,12 @@ steps_taken{segment} = stop-1;
 %Plot of the continuation on the sphere
 figs(1) = figure(1);
 subplot(1,number_of_segments+1,segment)
+%subplot(1,number_of_segments+1,1)
 [X, Y, Z] = sphere;
 surf(X,Y,Z,'FaceColor', [0 0 0], 'EdgeColor', 0.8*[1,1,1], 'FaceAlpha', 0.2);
 hold on
 scatter3(vectorized_solutions(1,1:n*m*stop),vectorized_solutions(2,1:n*m*stop),vectorized_solutions(3,1:n*m*stop),10, continuation_color(1:n*m*stop,:),'filled')
+%scatter3(vectorized_solutions(1,1:n*m),vectorized_solutions(2,1:n*m),vectorized_solutions(3,1:n*m),50, segment_color,'filled')
 scatter3(vectorized_solutions(1,1:n*m),vectorized_solutions(2,1:n*m),vectorized_solutions(3,1:n*m),50, continuation_color(1:n*m,:),'filled')
 if poles == 1
     scatter3(0,0,1, 50, segment_color,'filled')
@@ -286,6 +305,43 @@ elseif segment == 4
     title('Third Bifurcation')
 end
 
+%{
+%Plot of the error bounds along the continuation
+if existence_proof
+    subplot(2,max(number_of_segments, 3),max(number_of_segments, 3)+1);
+    %scatter(momentum(2:end),proof_data,10,color1,'filled', 'DisplayName', 'r_star')
+    scatter(momentum(2:end),proof_data,10,existence_color(2:end,:),'filled')
+    hold on
+    scatter(momentum(2:end),r_stars, 2, [0.5, 0.5, 0.5])    
+    set(gca,'FontSize',15)
+    axis square
+    %axis ([0 inf 0 inf])
+    set(gca,'yscale','log')
+    xlabel('$$\mu$$', 'Interpreter', 'latex', 'FontSize', 25)
+    ylabel('$$r_0$$', 'Interpreter', 'latex', 'FontSize', 25)
+    title('Existence Bound Along the Continuation')
+end
+
+
+
+%Plot of the eigenvalues along the continuation
+subplot(2,max(number_of_segments, 3),max(number_of_segments, 3)+2)
+for i = 1:size(values, 1)
+    %scatter(momentum, values(i,:), 5, stability_color, 'filled');
+    scatter(solutions(end,:), values(i,:), 5, stability_color, 'filled');
+    hold on   
+end
+%plot(momentum, zeros(1,steps+1), 'k')
+plot(solutions(end,:), zeros(1,steps+1), 'k')
+set(gca,'FontSize',15)
+xlabel('$$\omega$$', 'Interpreter', 'latex', 'FontSize', 25)
+ylabel('$$\lambda$$', 'Interpreter', 'latex', 'FontSize', 25)
+hYLabel = get(gca,'YLabel');
+set(hYLabel,'rotation',0,'VerticalAlignment','middle')
+title('Eigenvalue-Momentum Diagram')
+%}
+
+
 %Plot of the energy along the continuation
 subplot(1,number_of_segments+1,number_of_segments+1)
 scatter(momentum(1:stop), energy(1:stop), 10, stability_color(1:stop,:), 'filled');
@@ -305,12 +361,14 @@ hold on
 scatter(momentum(2:end), normAs, 5, 'b', 'filled');
 
 
-%Plot of the eigenvalues vs omega along the continuation
+%Plot of the eigenvalues along the continuation
 figs(3) = figure(3);
 for i = 1:size(values, 1)
+    %scatter(momentum, values(i,:), 5, stability_color, 'filled');
     scatter(solutions(end,:), values(i,:), 5, stability_color, 'filled');
     hold on   
 end
+%plot(momentum, zeros(1,steps+1), 'k')
 plot(solutions(end,:), zeros(1,steps+1), 'k')
 set(gca,'FontSize',15)
 xlabel('$$\omega$$', 'Interpreter', 'latex', 'FontSize', 25)
@@ -319,7 +377,7 @@ hYLabel = get(gca,'YLabel');
 set(hYLabel,'rotation',0,'VerticalAlignment','middle')
 title('Eigenvalue-Momentum Diagram')
 
-%Plotting momentum vs omega
+%Plotting momentum vs omegs
 figs(4) = figure(4);
 scatter(solutions(end,:),momentum,'filled')
 hold on

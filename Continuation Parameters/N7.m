@@ -29,7 +29,6 @@ load '../Data/p0n7m1_bif_1'
 poles_list{2} = 0;
 n_list{2} = 7;
 m_list{2} = 1;
-%initial_solutions_list{2} = load_solution;
 
 initial_solutions_list{2} = [0.3034
     0.9338
@@ -61,9 +60,6 @@ initial_solutions_list{2} = [0.3034
     2.4149
    -0.0000
     0.5851];
-
-
-%tangents_list{2} = 1e2 * -load_tangent;
 
 tangents_list{2} = 2 * [-0.0249
    -0.0571
@@ -115,16 +111,12 @@ initial_solutions_list{4} = load_solution;
 tangents_list{4} = -load_tangent;
 
 if adaptive == 0
-    steps_list = {627, 2215, 720, 100};
-    %steps_list = {627, 2210, 720, 100};
+    steps_list = {650, 2215, 720, 100};
 else
     steps_list = {5000, 1000, 1000, 1000};
 end
 
 number_of_segments = length(n_list);
-
-%range_existence = @(x) (0 <= x && x <= 0.584) || (0.8 <= x && x <= 1.07) || (x >= 1.1);
-%range_stability = @(x) (0.2 <= x && x <= 0.584) || (0.9 <= x && x <= 1.07) || (x >= 1.1);
 
 range_existence_list{1} = @(x) (0 <= x);
 range_existence_list{2} = @(x) (0.62 <= x && x <= 1.07) || (x >= 1.1);

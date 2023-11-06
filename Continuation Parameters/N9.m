@@ -43,7 +43,6 @@ tangents_list{3} = load_tangent;
 if adaptive == 0
     steps_list = {9000, 1000, 10000};
 else
-    %steps_list = {1000, 1000, 1000};
     steps_list = {50000, 50000, 10000};
 end
 

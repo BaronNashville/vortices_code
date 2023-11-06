@@ -24,18 +24,6 @@ lambda = lambda_generator(u, omega, m_list{1}, poles_list{1});
 initial_solutions_list{1} = [u;lambda;alpha;omega];
 tangents_list{1} = zeros(4*n_list{1}+2,1);
 
-%{
-%Switching to m = 1 symmetry
-load ../Data/p0n12m1_start
-poles_list{2} = 0;
-n_list{2} = 12;
-m_list{2} = 1;
-tmp = input_no_sym(load_solution, m_list{1}, poles_list{1});
-initial_solutions_list{2} = [tmp(1:end-1);0;tmp(end)];
-tangents_list{2} = zeros(4*n_list{2}+2,1);
-%}
-
-
 %First Bifurcation & Switching to m = 1 symmetry
 load '../Data/p0n12m1_bif_1_2'
 poles_list{2} = 0;
@@ -47,14 +35,11 @@ tangents_list{2} = load_tangent;
 
 if adaptive == 0
     steps_list = {5000, 100};
-    %steps_list = {4616, 100};
 else
     steps_list = {40000, 1000};
-    %steps_list = {37000, 40000, 10000};
 end
 
 number_of_segments = length(n_list)-1;
-
 
 range_existence_list{1} = @(x) (0 <= x);
 

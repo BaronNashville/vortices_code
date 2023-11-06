@@ -32,22 +32,10 @@ m_list{2} = 1;
 initial_solutions_list{2} = load_solution;
 tangents_list{2} = load_tangent;
 
-%{
-%Second Bifurcation
-load '../Data/p1n5m2_bif_2'
-poles_list{3} = 0;
-n_list{3} = 11;
-m_list{3} = 1;
-initial_solutions_list{3} = load_solution;
-tangents_list{3} = load_tangent;
-%}
-
 if adaptive == 0
     steps_list = {3000, 1000};
-    %steps_list = {2021, 845, 0};
 else
     steps_list = {50000, 50000};
-    %steps_list = {30000, 5000, 5000};
 end
 
 number_of_segments = length(n_list);

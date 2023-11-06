@@ -3,7 +3,6 @@ function [momentum,energy] = plot_values(x, m, poles)
 %Used for plotting
 
 %Extracting the data from the input
-%n = length(x)/3;
 n = (length(x)-2)/4;
 u = reshape(x(1:3*n), 3, n);
 
@@ -19,6 +18,7 @@ if momentum < 0
     momentum = -momentum;
 end
 
+%Expressing our vdata in a form easy to work with
 if poles == 0
     N = n*m;
     u_no_sym = vectorize(x,m);
@@ -35,11 +35,14 @@ end
 
 energy = 0;
 
+%Computing the energy using vectorization
 for i = 1:N-1
     diff = u_no_sym(:,1) - u_no_sym;
     diff(:,1) = [];    u_no_sym(:,1) = [];
     
-    energy = energy + sum(log(sum(diff.^2,1).^(1/2))/4);
+    norm_diff = sum(diff.^2,1).^(1/2);
+    
+    energy = energy + sum(log(norm_diff)/4);
 end
 
 energy = -1/2 * energy;

@@ -34,10 +34,8 @@ tangents_list{2} = load_tangent;
 
 if adaptive == 0
     steps_list = {2000, 2000};
-    %steps_list = {830, 2000};
 else
     steps_list = {5000, 2000};
-    %steps_list = {5000, 1000};
 end
 
 range_existence_list{1} = @(x) (0 <= x && x <= 0.499);

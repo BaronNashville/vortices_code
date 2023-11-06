@@ -34,10 +34,8 @@ tangents_list{2} = load_tangent;
 
 if adaptive == 0
     steps_list = {6000, 1000};
-    %steps_list = {5229, 845};
 else
-    steps_list = {100000, 500};
-    %steps_list = {30000, 5000, 5000};
+    steps_list = {50000, 5000};
 end
 
 number_of_segments = length(n_list)-1;

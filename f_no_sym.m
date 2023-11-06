@@ -32,8 +32,8 @@ for j = 1:N
     inverse_norm_square_uj_minus_u = sum(uj_minus_u.^2,1).^(-1);
     
     %computing the map by vectorization
-    del_H = sum(inverse_norm_square_uj_minus_u.*uj_minus_u,2);
+    del_H = -sum(inverse_norm_square_uj_minus_u.*uj_minus_u,2);
     
     %slotting in our computation in the correct slot
-    f(1+(j-1)*3:3*j,1) = -del_H - omega*e3 + lambda(j)*u_j;
+    f(1+(j-1)*3:3*j,1) = del_H - omega*e3 + lambda(j)*u_j;
 end

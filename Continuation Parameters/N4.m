@@ -29,7 +29,6 @@ tangents_list{1} = zeros(4*n_list{1}+2, 1);
 if adaptive == 0
     steps_list = {5000};
 else
-    %steps_list = {100};
     steps_list = {5000};
 end
 
