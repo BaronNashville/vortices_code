@@ -10,7 +10,7 @@ Recall the following colour coding when looking at the plots.
     Green      - Lyapunov stable
     Red        - Unstable
     Magenta    - Inconclusive test
-    Yellow     - Numercial uncertainty
+    Yellow     - Numerical uncertainty
 
 If the existence of the solution could not be proven, we color the point black.
 
