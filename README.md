@@ -7,10 +7,10 @@ There are 2 types of numerical proofs this code can produce.
 
 Recall the following colour coding when looking at the plots.
 
-Green      - Lyapunov stable
-Red        - Unstable
-Magenta    - Inconclusive test
-Yellow     - Numercial uncertainty
+    Green      - Lyapunov stable
+    Red        - Unstable
+    Magenta    - Inconclusive test
+    Yellow     - Numercial uncertainty
 
 If the existence of the solution could not be proven, we color the point black.
 
