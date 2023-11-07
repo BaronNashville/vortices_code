@@ -8,13 +8,13 @@ Id = eye(length(x)-1);
 A = Df_param(mid(x), m, poles, u_tilde)^-1;
 
 %Computing the bounds Y, Z
-Y = sup(norm(A*f(x, m, poles, u_tilde),inf));
-Z = sup(norm(Id - A*Df_U(C, m, poles, u_tilde),inf));
+Y = norm(A*f(x, m, poles, u_tilde),inf);
+Z = norm(Id - A*Df_U(C, m, poles, u_tilde),inf);
 
 %If Z > 1, return a "bad" interval, else return the minimum radius of existence
 if Z > 1
     r_min = -1;
 else
-    r_min = Y/(1-Z);
+    r_min = sup(Y/(1-Z));
 end
 end

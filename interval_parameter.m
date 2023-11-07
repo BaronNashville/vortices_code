@@ -14,16 +14,16 @@ X_s = X_0 + s * delta_X;
 A = Df_param(mid(X_0), m, poles, u_tilde)^-1;
 
 %Computing the bounds Y, Z
-Y1 = sup(norm(A*f(X_0, m, poles, u_tilde), inf));
-Y2 = sup(norm(A * Df(X_s, m, poles, u_tilde) * delta_X, inf));
+Y1 = norm(A*f(X_0, m, poles, u_tilde), inf);
+Y2 = norm(A * Df(X_s, m, poles, u_tilde) * delta_X, inf);
 Y = Y1 + Y2;
 
-Z = sup(norm(Id - A*Df_param(C, m, poles, u_tilde), inf));
+Z = norm(Id - A*Df_param(C, m, poles, u_tilde), inf);
 
 %If Z > 1, return a "bad" interval, else return the minimum radius of existence
 if Z > 1
     r_min = -1;
 else
-    r_min = (Y)/(1 - Z);
+    r_min = sup(Y/(1-Z));
 end
 end
